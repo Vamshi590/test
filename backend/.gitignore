@@ -15,7 +15,7 @@ dist/
 # deps
 node_modules/
 .wrangler
-.serverless
+.serverless/
 
 # env
 .env
