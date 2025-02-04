@@ -1,0 +1,31 @@
+{
+  "name": "backend",
+  "scripts": {
+    "dev": "serverless offline",
+    "build": "npx prisma generate",
+    "deploy": "serverless deploy --verbose",
+    "deploy:prod": "node scripts/prepare.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.722.0",
+    "@aws-sdk/s3-request-presigner": "^3.722.0",
+    "@prisma/client": "^5.20.0",
+    "@types/aws-lambda": "^8.10.136",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@upstash/redis": "^1.34.3",
+    "aws-lambda": "^1.0.7",
+    "cookie": "^1.0.2",
+    "dotenv": "^16.4.7",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^5.20.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "esbuild": "^0.20.1",
+    "serverless": "^3.38.0",
+    "serverless-esbuild": "^1.54.6",
+    "serverless-offline": "^13.3.3",
+    "typescript": "^5.3.3"
+  }
+}

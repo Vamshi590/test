@@ -1,0 +1,975 @@
+service: docsile-backend
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ap-south-1
+  environment:
+    DATABASE_URL: ${file(./config.json):DATABASE_URL, env:DATABASE_URL}
+    JWT_SECRET: ${file(./config.json):JWT_SECRET, env:JWT_SECRET}
+    NODE_ENV: ${file(./config.json):NODE_ENV, "development"}
+    UPSTASH_REDIS_REST_URL: ${file(./config.json):UPSTASH_REDIS_REST_URL, env:UPSTASH_REDIS_REST_URL}
+    UPSTASH_REDIS_REST_TOKEN: ${file(./config.json):UPSTASH_REDIS_REST_TOKEN, env:UPSTASH_REDIS_REST_TOKEN}
+    AWS_KEY: ${file(./config.json):AWS_KEY, env:AWS_KEY}
+    AWS_SECRET: ${file(./config.json):AWS_SECRET, env:AWS_SECRET}
+  apiGateway:
+    shouldStartNameWithService: true
+    apiKeys: []
+
+package:
+  individually: true
+  patterns:
+    - '!**'
+
+plugins:
+  - serverless-esbuild
+  - serverless-offline
+
+custom:
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: false
+    platform: 'node'
+    target: 'node18'
+    packager: 'npm'
+    concurrency: 1
+    keepOutputDirectory: false
+    external:
+      - '@prisma/client'
+      - 'prisma'
+    exclude:
+      - 'aws-sdk'
+    define:
+      'require.resolve': 'undefined'
+    metafile: false
+    watch:
+      pattern: ['src/**/*.ts']
+  serverless-offline:
+    httpPort: 3000
+    lambdaPort: 3003
+    host: localhost
+    noPrependStageInUrl: true
+  allowedHeaders:
+    - Content-Type
+    - X-Amz-Date
+    - Authorization
+    - X-Api-Key
+    - X-Amz-Security-Token
+    - X-Requested-With
+
+resources:
+  Resources:
+    GatewayResponseDefault4XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'http://localhost:5173'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+          gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
+        ResponseType: DEFAULT_4XX
+        RestApiId: !Ref ApiGatewayRestApi
+        StatusCode: '400'
+    GatewayResponseDefault5XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'http://localhost:5173'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+          gatewayresponse.header.Access-Control-Allow-Credentials: "'true'"
+        ResponseType: DEFAULT_5XX
+        RestApiId: !Ref ApiGatewayRestApi
+        StatusCode: '500'
+
+functions:
+  auth:
+    handler: src/handlers/auth.handler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/auth.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+        - 'node_modules/zod/**'
+    events:
+      - http:
+          path: /auth/signup
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /auth/signin
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /auth/{proxy+}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  doctorSignup:
+    handler: src/signup/index.doctorSignupHandler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/signup/index.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /signup/doctor
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /signup/doctor
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  studentSignup:
+    handler: src/signup/index.studentSignupHandler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/signup/index.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /signup/student
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /signup/student
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  organisationSignup:
+    handler: src/signup/index.organisationSignupHandler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/signup/index.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /signup/organisation
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /signup/organisation
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  getFeed:
+    handler: src/handlers/feed.getFeed
+    events:
+      - http:
+          path: /feed/{id}
+          method: get
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /feed/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+    timeout: 30
+    memorySize: 512
+    package:
+      patterns:
+        - 'src/handlers/feed.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+
+  invalidateFeedCache:
+    handler: src/handlers/feed.invalidateCache
+    events:
+      - http:
+          path: /feed/{id}/invalidate
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /feed/{id}/invalidate
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+    timeout: 10
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/feed.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+
+  createQuestion:
+    handler: src/handlers/questions.createQuestion
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/questions.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+        - 'node_modules/zod/**'
+        - 'node_modules/@upstash/redis/**'
+    events:
+      - http:
+          path: /ask-question/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /ask-question/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  createReels:
+    handler: src/handlers/videos.createReel
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/videos.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+        - 'node_modules/zod/**'
+        - 'node_modules/@upstash/redis/**'
+    events:
+      - http:
+          path: /create-reel/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /create-reel/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+
+  getQuestions:
+    handler: src/handlers/questions.getQuestions
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/questions.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+        - 'node_modules/zod/**'
+        - 'node_modules/@upstash/redis/**'
+    events:
+      - http:
+          path: /questions/{id}
+          method: get
+          cors: true
+
+  getReels:
+    handler: src/handlers/videos.getReels
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/videos.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+        - 'node_modules/zod/**'
+        - 'node_modules/@upstash/redis/**'
+    events:
+      - http:
+          path: /clinical/reels/{id}
+          method: get
+          cors: true
+
+
+
+
+  invalidateQuestionsCache:
+    handler: src/handlers/questions.invalidateCache
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/questions.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+        - 'node_modules/zod/**'
+        - 'node_modules/@upstash/redis/**'
+    events:
+      - http:
+          path: /questions/{id}/invalidate-cache
+          method: post
+          cors: true
+
+
+  invalidateConnectionsCache:
+    handler: src/handlers/connections.invalidateCache
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/connections.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+        - 'node_modules/zod/**'
+        - 'node_modules/@upstash/redis/**'
+    events:
+      - http:
+          path: /connections/{id}/invalidate-cache
+          method: post
+          cors: true
+
+
+
+  check-verification:
+    handler: src/handlers/verification.handler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/verification.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+    events:
+      - http:
+          path: /api/check-verification
+          method: get
+          cors: true
+
+  verify-doctor:
+    handler: src/handlers/verification.verifyDoctor
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/verification.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+    events:
+      - http:
+          path: /verify-doctor
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /verify-doctor
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  verify-student:
+    handler: src/handlers/verification.verifyStudent
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/verification.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+    events:
+      - http:
+          path: /verify-student
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /verify-student
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  connections:
+    handler: src/handlers/connections.handler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/connections.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /connections/{id}
+          method: get
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /connections/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  getStudents:
+    handler: src/handlers/students.handler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/students.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /students/{id}
+          method: get
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /students/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+
+  studentAccept:
+    handler: src/handlers/students.studentAccept
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/students.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /student/accept/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /student/accept/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  studentReject:
+    handler: src/handlers/students.studentReject
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/students.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /student/reject/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /student/reject/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+
+  networkConnections:
+    handler: src/handlers/connections.getNetworkConnections
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/connections.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /network-connections/{id}
+          method: get
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /network-connections/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  getUploadUrl:
+    handler: src/handlers/uploads.getUploadUrl
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/uploads.ts'
+        - 'node_modules/@aws-sdk/**'
+    events:
+      - http:
+          path: /uploads/url
+          method: get
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /uploads/url
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  getMultipleUploadUrls:
+    handler: src/handlers/uploads.getMultipleUploadUrls
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/uploads.ts'
+        - 'node_modules/@aws-sdk/**'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /uploads/multiple
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /uploads/multiple
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  Multipartupload:
+    handler: src/handlers/uploads.MultipartUpload
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/uploads.ts'
+        - 'node_modules/@aws-sdk/**'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /start-multipart-upload
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /start-multipart-upload
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /generate-presigned-url
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /generate-presigned-url
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /complete-multipart-upload
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /complete-multipart-upload
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+  follow:
+    handler: src/handlers/follow.handler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/follow.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /follow/{id}/{followingId}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /follow/{id}/{followingId}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+
+  comment:
+    handler: src/handlers/comments.handler
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/comments.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /comment
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+      - http:
+          path: /comment
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+
+  profile:
+    handler: src/handlers/profile.handler
+    timeout: 30
+    memorySize: 512
+    package:
+      patterns:
+        - 'src/handlers/profile.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+    events:
+      - http:
+          path: publish-post/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: publish-post/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+      - http:
+          path: add-certificate/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: add-professional-experience/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: add-education/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: add-memberships/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+
+  likes:
+    handler: src/handlers/likes.handler
+    timeout: 30
+    memorySize: 512
+    package:
+      patterns:
+        - 'src/handlers/likes.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+        - 'node_modules/jsonwebtoken/**'
+    events:
+      - http:
+          path: /like
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+      - http:
+          path: /dislike
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+
+      - http:
+          path: /likes/{postId}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      
+  get-profile:
+    handler: src/handlers/profile.getProfile
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/profile.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: profile/{id}
+          method: get
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+  network-connections:
+    handler: src/handlers/connections.getNetworkConnections
+    timeout: 30
+    memorySize: 256
+    package:
+      patterns:
+        - 'src/handlers/connections.ts'
+        - 'node_modules/.prisma/client/**'
+        - '!node_modules/.prisma/client/libquery_engine-*'
+        - 'node_modules/.prisma/client/libquery_engine-rhel-*'
+        - 'node_modules/@prisma/client/**'
+        - '!node_modules/@prisma/engines/**'
+    events:
+      - http:
+          path: /connections/network
+          method: get
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
