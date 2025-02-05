@@ -6,7 +6,6 @@ import JoinNow from "../pages/JoinNow";
 import Login from "../pages/Login";
 import SignUp from "../pages/SignUp";
 import VerifyOTP from "../pages/VerifyOTP";
-import Profile from "../pages/Profile";
 import StudentProfile_Profile from "../pages/StudentProfile_Profile";
 import StudentProfile_Profile_2 from "../pages/StudentProfile_Profile_2";
 import StudentProfile_verify from "../pages/StudentProfile_verify";
@@ -44,6 +43,7 @@ import ReelsFeed from "@/components/videos/ReelplayerPage";
 import Networkpage from "@/components/Network/Networkpage";
 import QuestionDetail from "@/pages/QuestionDetail";
 import Verifying from "@/pages/Verifying";
+import Profile from "@/components/profile/Profile";
 
 export const router = createBrowserRouter([
   {
@@ -58,6 +58,7 @@ export const router = createBrowserRouter([
     path: "/question/:questionId",
     element: <QuestionDetail />,
   },
+  {path : '/profile', element : <Profile/>},
   {path: "/verifying",element:<Verifying/>},
   {path : "/signup2" , element : <SignUp2/>},
   {path :"/signup/doctor/:id" , element : <SignupDoctor/>},
@@ -71,7 +72,7 @@ export const router = createBrowserRouter([
   { path: "/auth/signin", element: <Login /> },
   { path: "/auth/signup", element: <SignUp /> },
   { path: "/verify-otp", element: <VerifyOTP /> },
-  { path: "/profile/:id", element: <Profile /> },
+  // { path: "/profile/:id", element: <Profile /> },
   { path: "/student/student-profile", element: <StudentProfile_Profile /> },
   { path: "/student/student-profile-2", element: <StudentProfile_Profile_2 /> },
   { path: "/student/student-verify", element: <StudentProfile_verify /> },

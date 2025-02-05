@@ -817,7 +817,7 @@ functions:
         - 'node_modules/jsonwebtoken/**'
     events:
       - http:
-          path: publish-post/{id}
+          path: /publish-post/{id}
           method: post
           cors:
             origin: 'http://localhost:5173'
@@ -828,7 +828,7 @@ functions:
               paths:
                 id: true
       - http:
-          path: publish-post/{id}
+          path: /publish-post/{id}
           method: options
           cors:
             origin: 'http://localhost:5173'
@@ -838,9 +838,8 @@ functions:
             parameters:
               paths:
                 id: true
-
       - http:
-          path: add-certificate/{id}
+          path: /add-certificate/{id}
           method: post
           cors:
             origin: 'http://localhost:5173'
@@ -851,7 +850,18 @@ functions:
               paths:
                 id: true
       - http:
-          path: add-professional-experience/{id}
+          path: /add-certificate/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /add-professional-experience/{id}
           method: post
           cors:
             origin: 'http://localhost:5173'
@@ -862,7 +872,18 @@ functions:
               paths:
                 id: true
       - http:
-          path: add-education/{id}
+          path: /add-professional-experience/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /add-education/{id}
           method: post
           cors:
             origin: 'http://localhost:5173'
@@ -873,7 +894,18 @@ functions:
               paths:
                 id: true
       - http:
-          path: add-memberships/{id}
+          path: /add-education/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /add-memberships/{id}
           method: post
           cors:
             origin: 'http://localhost:5173'
@@ -883,7 +915,39 @@ functions:
             parameters:
               paths:
                 id: true
-
+      - http:
+          path: /add-memberships/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /add-achievements-awards/{id}
+          method: post
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: /add-achievements-awards/{id}
+          method: options
+          cors:
+            origin: 'http://localhost:5173'
+            headers: ${self:custom.allowedHeaders}
+            allowCredentials: true
+          request:
+            parameters:
+              paths:
+                id: true
 
   likes:
     handler: src/handlers/likes.handler
@@ -909,7 +973,7 @@ functions:
 
       - http:
           path: /dislike
-          method: post
+          method: delete
           cors:
             origin: 'http://localhost:5173'
             headers: ${self:custom.allowedHeaders}

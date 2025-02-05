@@ -17,12 +17,16 @@ export interface PostProps {
   likes: number;
   comments: number;
   shares: number;
+  liked : boolean;
   reposts: number;
+  readcomments : any[];
   onLike?: () => void;
-  onComment?: () => void;
+  onComment: (postId: number, content: string) => void;
   onShare?: () => void;
   onRepost?: () => void;
   onMoreOptions?: () => void;
+  sendComment?: (comment: string) => void;
+  id: number;
 }
 
 export interface NavItemProps {

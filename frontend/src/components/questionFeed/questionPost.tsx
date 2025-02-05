@@ -104,6 +104,8 @@ const AnswerComponent: React.FC<{ answer: Answer }> = ({ answer }) => {
     setIsDisliked(!isDisliked);
   };
 
+ 
+
   return (
     <div className="px-4 mt-3 font-fontsm">
       <div className="flex gap-3">
@@ -279,6 +281,14 @@ export const QuestionPost: React.FC<QuestionPostProps> = ({
     setIsMoreOpen(!isMoreOpen);
   };
 
+  type KeyValueObject = { [key: string]: string };
+  
+  function extractValues(data: (KeyValueObject | string)[]): string[] {
+      return data.map(obj => typeof obj === 'string' ? obj : Object.values(obj)[2]);
+  }
+  
+  const valuesArray = extractValues(images);
+
 
   return (
     <div>
@@ -404,7 +414,7 @@ export const QuestionPost: React.FC<QuestionPostProps> = ({
           )}
           <div className="relative overflow-hidden" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
             <div className="flex transition-transform duration-300" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
-              {images.map((image, index) => (
+              {valuesArray.map((image, index) => (
                 <div onClick={handleQuestionClick} key={index} className="flex-none w-full lg:h-64 rounded-lg bg-gray-200">
                   <img src={image} alt={`Post image ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
                 </div>
@@ -412,7 +422,7 @@ export const QuestionPost: React.FC<QuestionPostProps> = ({
             </div>
           </div>
           <div className="flex justify-center mt-2 space-x-1">
-            {images.map((_, index) => (
+            {valuesArray.map((_, index) => (
               <div
                 key={index}
                 className={`h-2 w-2 rounded-full ${index === currentIndex ? "bg-blue-600" : "bg-gray-400"}`}

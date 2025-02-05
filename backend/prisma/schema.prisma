@@ -45,6 +45,7 @@ model User {
   questionViews                 QuestionViews[]
   students                      students[]
   ClinicalReels                 clinicalReels[]
+  comments                      Comments[]
 }
 
 model students {
@@ -120,6 +121,7 @@ model AchievementsAwards {
   awardedBy   String?
   awardedOn   String?
   descreption String?
+  awardMedia  String?
 }
 
 model Organisations {
@@ -190,6 +192,7 @@ model Comments {
   Posts             Posts?   @relation(fields: [postsId], references: [id])
   postsId           Int?
   commented_user_id Int?
+  user              User?    @relation(fields: [commented_user_id], references: [id])
   comment           String
   commented_at      DateTime @default(now())
 }

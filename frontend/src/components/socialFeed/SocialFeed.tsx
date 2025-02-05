@@ -189,6 +189,7 @@ export const SocialFeed: React.FC = () => {
   //id
   const id = location.state;
   const userId = localStorage.getItem("Id") || id;
+  const intid = parseInt(userId);
   //feed items
   const [feedItems, setFeedItems] = useState<any[]>([]);
   //recommended users
@@ -404,15 +405,22 @@ export const SocialFeed: React.FC = () => {
 
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
 
+  // Initialize liked posts from feed data
+  useEffect(() => {
+    if (feedItems) {
+      const initialLikedPosts = new Set(
+        feedItems.filter((item) => item?.likes?.length > 0).map((item) => item.id)
+      );
+      setLikedPosts(initialLikedPosts);
+    }
+  }, [feedItems]);
 
-  
   async function handleLikeClick(postId: number) {
     // Optimistically update UI
 
     console.log("likedPosts");
 
-
-    setLikedPosts(prev => {
+    setLikedPosts((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(postId)) {
         newSet.delete(postId);
@@ -424,20 +432,21 @@ export const SocialFeed: React.FC = () => {
 
     try {
       if (likedPosts.has(postId)) {
-        await axios.delete(`https://128i1lirkh.execute-api.ap-south-1.amazonaws.com/dev/like`, {
-          data: { userId, postId }
+        await axios.delete(`https://128i1lirkh.execute-api.ap-south-1.amazonaws.com/dev/dislike`, {
+          data: { userId, postId },
         });
 
         console.log("removed like");
       } else {
         await axios.post(`https://128i1lirkh.execute-api.ap-south-1.amazonaws.com/dev/like`, {
-          userId, postId
+          userId,
+          postId,
         });
         console.log("added like");
       }
     } catch (e) {
       // Revert UI on error
-      setLikedPosts(prev => {
+      setLikedPosts((prev) => {
         const newSet = new Set(prev);
         if (newSet.has(postId)) {
           newSet.delete(postId);
@@ -450,6 +459,53 @@ export const SocialFeed: React.FC = () => {
     }
   }
 
+
+    // Add state for comments
+    const [comments, setComments] = useState<Record<number, Array<any>>>({});
+
+    // Add comment handler
+    async function handleComment(postId: number, content: string) {
+      // Optimistically add comment
+
+      console.log(content);
+
+
+      const tempComment = {
+        id: Date.now(),
+        comment: content,
+        user: { name: "You" }
+      };
+      
+      setComments(prev => ({
+        ...prev,
+        [postId]: [...(prev[postId] || []), tempComment]
+      }));
+  
+      try {
+        const response = await axios.post(`https://128i1lirkh.execute-api.ap-south-1.amazonaws.com/dev/comment`, {
+          postId,
+          userId : intid,
+          comment : content
+        });
+        console.log(response)
+        
+        if (!response.data.success) {
+          // Remove temp comment if failed
+          setComments(prev => ({
+            ...prev,
+            [postId]: prev[postId].filter(c => c.id !== tempComment.id)
+          }));
+          toast.error("Failed to add comment");
+        }
+      } catch (error) {
+        setComments(prev => ({
+          ...prev,
+          [postId]: prev[postId].filter(c => c.id !== tempComment.id)
+        }));
+        toast.error("Failed to add comment");
+      }
+    }
+
   return (
     <div className="flex flex-col min-h-screen ">
       {/* Header */}
@@ -457,7 +513,7 @@ export const SocialFeed: React.FC = () => {
         <Header
           onNotification={() => console.log("Notification clicked")}
           onMessage={() => console.log("Message clicked")}
-          onProfile={() => console.log("Profile clicked")}
+          onProfile={() => navigate("/profile")}
           onSearch={() => console.log("Profile clicked")}
         />
       </div>
@@ -598,6 +654,7 @@ export const SocialFeed: React.FC = () => {
                       }
                     >
                       <Post
+                      id={item.id}
                         avatar="https://cdn.builder.io/api/v1/image/assets/TEMP/13d83c993760da19a222234c3cbcb356d551631f91a34653bf73ab3984455ff6?placeholderIfAbsent=true&apiKey=90dc9675c54b49f9aa0dc15eba780c08"
                         name={item.User.name}
                         bio={`${item.User.department} | ${item.User.organisation_name}`}
@@ -613,10 +670,12 @@ export const SocialFeed: React.FC = () => {
                         images={item.postImageLinks}
                         likes={item._count.likes}
                         comments={item._count.comments}
+                        readcomments = {item.comments}
                         shares={item._count.shares}
+                        liked={likedPosts.has(item.id)}
                         reposts={51}
                         onLike={() => handleLikeClick(item.id)}
-                        onComment={() => console.log("Comment clicked")}
+                        onComment={(postId, content) => handleComment(postId, content)}
                         onShare={() => console.log("Share clicked")}
                         onRepost={() => console.log("Repost clicked")}
                         onMoreOptions={() =>

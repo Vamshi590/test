@@ -26,11 +26,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         return createResponse(200, {});
     }
 
-    const userId = event.pathParameters?.id;
-    if (!userId) {
-        return createResponse(400, { message: "User ID is required" });
-    }
-
+ 
 
     try {
         const body = JSON.parse(event.body || '{}');

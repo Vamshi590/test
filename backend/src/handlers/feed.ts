@@ -113,6 +113,31 @@ export const getFeed: APIGatewayProxyHandler = async (event) => {
                     description: true,
                     posted_at: true,
                     userId: true,
+                    likes: {
+                        where: {
+                            liked_user_id: userid
+                        },
+                        select: {
+                            liked_user_id: true
+                            
+                        }
+                    },
+                    comments: {
+                        select: {
+                            id: true,
+                            comment: true,
+                            user: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    organisation_name: true,
+                                    city: true,
+                                    department: true,
+                                    profile_picture: true
+                                }
+                            }
+                        }
+                    },
                     postImageLinks: {
                         select: {
                             postImageLink: true

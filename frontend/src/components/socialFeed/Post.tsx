@@ -8,7 +8,7 @@ import comment from "../../assets/icon/comment1.svg";
 import repost from "../../assets/icon/repost.svg";
 import share from "../../assets/icon/share.svg";
 import like from "../../assets/icon/like1.svg";
-import liked from "../../assets/icon/liked.svg";
+import likedi from "../../assets/icon/liked.svg";
 import { useRef, useEffect, useState } from "react";
 import { IoIosArrowDroprightCircle, IoIosArrowDropleftCircle } from "react-icons/io";
 import PostExpandedView from "./PostExpandedView";
@@ -21,38 +21,52 @@ import notinterested from "../../assets/icon/notintrested.svg";
 
 interface Author {
   name: string;
-  avatar: string;
-  bio: string;
+  profile_picture: string;
+  department: string;
+  organisation_name : string;
   timeAgo?: string; // Make timeAgo optional if not always present
 }
 
 // Define the Comment interface
 interface Comment {
   id: string;
-  author: Author;
-  content: string;
+  user: Author;
+  comment: string;
   timeAgo: string;
   likes: number;
   replies?: Comment[]; // Ensure replies is an array of Comment
 }
-const CommentInput = () => {
+const CommentInput = ({ postId, onComment }: { postId: number; onComment: (postId: number, content: string) => void }) => {
   const [comment, setComment] = useState('');
+  
+  const handleSubmit = () => {
+    if (comment.trim()) {
+      onComment(postId, comment);
+      setComment('');
+    }
+  };
+
   return (
     <div className="flex mb-8 c gap-3 font-fontsm ">
       <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/13d83c993760da19a222234c3cbcb356d551631f91a34653bf73ab3984455ff6" alt="User avatar" className="w-8 h-8 rounded-full" />
       <div className="flex   flex-1 gap-2">
-      <input
-                  type="text"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Add Comments..."
-                  className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm outline-none"
-                />
+        <input
+          type="text"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Add Comments..."
+          className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm outline-none"
+          onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+        />
         
-          <div className="flex items-center  ">
-            <button className="px-3  py-1 text-sm text-white  font-light bg-maincl rounded-full hover:bg-fillc">Comment</button>
-          </div>
-      
+        <div className="flex items-center">
+          <button 
+            onClick={handleSubmit}
+            className="px-3 py-1 text-sm text-white font-light bg-maincl rounded-full hover:bg-fillc"
+          >
+            Comment
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -79,27 +93,27 @@ const Comment = ({ comment }: { comment: Comment }) => {
     <div className="px-4 mt-3 font-fontsm">
       <div className="flex gap-3">
         <img
-          src={comment.author.avatar}
-          alt={`${comment.author.name}'s avatar`}
+          src={comment.user.profile_picture}
+          alt={`${comment.user.name}'s avatar`}
           className="w-6 h-6 rounded-full"
         />
         <div className="flex-1 max-w-84">
           <div className="bg-buttonclr px-3 py-2 rounded-tl-none rounded-2xl relative">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium text-neutral-700">
-                {comment.author.name}
+                {comment.user.name}
               </span>
-              <span className="text-fontlit text-neutral-500">{comment.timeAgo}</span>
+              <span className="text-fontlit text-neutral-500">{"1d ago"}</span>
             </div>
-            <p className="text-fontvlit text-gray-500 max-w-64 line-clamp-1">{comment.author.bio} </p>
-            <p className="text-xs text-neutral-600 mt-1">{formatComment(comment.content)}</p>
+            <p className="text-fontvlit text-gray-500 max-w-64 line-clamp-1">{`${comment.user.department} | ${comment.user.organisation_name}`} </p>
+            <p className="text-xs text-neutral-600 mt-1">{formatComment(comment?.comment)}</p>
           </div>
           <div className="flex items-center gap-4 mt-1 ml-2">
             <button
               onClick={() => setIsLiked(!isLiked)}
               className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-700"
             >
-              <img src={isLiked ? liked : like} alt="" className="w-4 h-4" />
+              <img src={isLiked ? likedi : like} alt="" className="w-4 h-4" />
               <span>{comment.likes}</span>
             </button>
             <button
@@ -161,10 +175,14 @@ export const Post: React.FC<PostProps> = ({
   comments,
   shares,
   reposts,
+  liked,
   onLike,
   onComment,
   onShare,
   onRepost,
+  readcomments,
+  onMoreOptions,
+  id,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -172,7 +190,6 @@ export const Post: React.FC<PostProps> = ({
   const [showComments, setShowComments] = useState(false);
   const startXRef = useRef<number | null>(null);
   const currentTranslate = useRef(0);
-  const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -245,47 +262,11 @@ export const Post: React.FC<PostProps> = ({
 
   };
 
+
+
+
   const visibleDots = getVisibleDots();
 
-  const sampleComments : Comment[]= [
-    {
-      id: "1",
-      author: {
-        name: "Nampally Sriram",
-        avatar: "https://cdn.builder.io/api/v1/image/assets/TEMP/13d83c993760da19a222234c3cbcb356d551631f91a34653bf73ab3984455ff6",
-        bio: "Ophthalmologist | AIIMS DM-(F) | Leading Medical Professional",
-      },
-      content: "Congrats @Vamshidhar_seelam",
-      timeAgo: "3 days ago",
-      likes: 37,
-      replies: [], // Correctly typed as Comment[]
-    },
-    {
-      id: "2",
-      author: {
-        name: "Nampally Sriram",
-        avatar: "https://cdn.builder.io/api/v1/image/assets/TEMP/13d83c993760da19a222234c3cbcb356d551631f91a34653bf73ab3984455ff6",
-        bio: "Ophthalmologist | AIIMS DM-(F) | Leading Medical Professional",
-      },
-      content: "Congrats @Vamshidhar_seelam",
-      timeAgo: "3 days ago",
-      likes: 32,
-      replies: [
-        {
-          id: "2-1",
-          author: {
-            name: "Nampally Sriram",
-            avatar: "https://cdn.builder.io/api/v1/image/assets/TEMP/13d83c993760da19a222234c3cbcb356d551631f91a34653bf73ab3984455ff6",
-            bio: "Ophthalmologist | AIIMS DM-(F) | Leading Medical Professional",
-          },
-          content: "Congrats @Vamshidhar_seelam",
-          timeAgo: "3 days ago",
-          likes: 15,
-          replies: [], // Correctly typed as Comment[]
-        },
-      ],
-    },
-  ];
 
   
   type KeyValueObject = { [key: string]: string };
@@ -419,7 +400,7 @@ export const Post: React.FC<PostProps> = ({
             <div className="flex">
               <div className="flex">
                 <button onClick={onLike} className="flex items-center gap-1 text-xs text-neutral-500 hover:text-slate-700">
-                  <img src={isLiked ? liked : like} alt="" className="w-5 h-5" />
+                  <img src={liked ? likedi : like} alt="" className="w-6 h-6" />
                 </button>
               </div>
               <div className="flex flex-col justify-start text-xs pl-1">
@@ -433,14 +414,12 @@ export const Post: React.FC<PostProps> = ({
                 <div className="flex ">
                   <button
                     onClick={() => {
-                      if (onComment) { // Check if onComment is defined
-                        onComment(); // Call onComment if it exists
-                      }
+                     
                       toggleComments();
                     }}
                     className="flex items-center gap-1 text-xs text-neutral-500 hover:text-slate-700"
                   >
-                    <img src={comment} alt="" className="w-5 h-5" />
+                    <img src={comment} alt="" className="w-6 h-6" />
                   </button>
                 </div>
   
@@ -456,14 +435,12 @@ export const Post: React.FC<PostProps> = ({
               <div className="flex">
                 <button
                   onClick={() => {
-                    if (onComment) { // Check if onComment is defined
-                      onComment(); // Call onComment if it exists
-                    }
+                  
                     toggleComments();
                   }}
                   className="flex items-center gap-1 text-xs text-neutral-500 hover:text-slate-700"
                 >
-                  <img src={comment} alt="" className="w-5 h-5" />
+                  <img src={comment} alt="" className="w-6 h-6" />
                 </button>
               </div>
 
@@ -479,7 +456,7 @@ export const Post: React.FC<PostProps> = ({
             <div className="flex">
               <div className="flex">
                 <button onClick={onShare} className="flex items-center gap-1 text-xs text-neutral-500 hover:text-slate-700">
-                  <img src={share} className="w-5 h-5" />
+                  <img src={share} className="w-6 h-6" />
                 </button>
               </div>
               <div className="flex flex-col justify-start text-xs pl-1">
@@ -490,7 +467,7 @@ export const Post: React.FC<PostProps> = ({
             <div className="flex">
               <div className="flex">
                 <button onClick={onRepost} className="flex items-center gap-1 text-xs text-neutral-500 hover:text-slate-700">
-                  <img src={repost} alt="" className="w-5 h-5" />
+                  <img src={repost} alt="" className="w-6 h-6" />
                 </button>
               </div>
               <div className="flex flex-col justify-start text-xs pl-1.5">
@@ -503,9 +480,9 @@ export const Post: React.FC<PostProps> = ({
           {/* Comments section */}
           {showComments && (
             <div className="mt-4 border-t border-gray-200 pt-4">
-              <CommentInput />
+              <CommentInput postId={id} onComment={onComment} />
               <div className="mt-4 space-y-4">
-                {sampleComments.map((comment) => (
+                {readcomments?.map((comment) => (
                   <Comment key={comment.id} comment={comment} />
                 ))}
               </div>
@@ -522,7 +499,7 @@ export const Post: React.FC<PostProps> = ({
           content: { title: title, description: content },
           stats: { likes, comments, shares, reposts },
           hashtags: ["Ophthalmology", "OpthalTech", "OphthalTrends"],
-          comments: sampleComments,
+          comments : readcomments,
         }}
       />
     </>
